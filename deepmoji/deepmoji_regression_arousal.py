@@ -6,12 +6,12 @@ import json
 #reload(class_avg_finetuning)
 from deepmoji.model_def import deepmoji_architecture, load_specific_weights
 from deepmoji.global_variables import PRETRAINED_PATH, VOCAB_PATH, NB_TOKENS
-from deepmoji.class_avg_finetuning import class_avg_finetune
+from deepmoji.class_avg_finetuning_aro import class_avg_finetune
 from deepmoji.finetuning import calculate_batchsize_maxlen
 from deepmoji.sentence_tokenizer import SentenceTokenizer
 from sklearn.model_selection import train_test_split
 
-dataPath = '../data/'
+dataPath = '../data_aro/'
 
 
 class DeepmojiEncoding:
@@ -91,7 +91,7 @@ for i in range(0,len(df)):
 
 doms = []
 for i in range(0,len(df)):
-    doms.append(df.iloc[i][4])
+    doms.append(df.iloc[i][3])
 
 
 y = np.zeros((len(doms),1))
@@ -112,11 +112,11 @@ encodingModel = DeepmojiEncoding(X_train,y_train, numEpoch = 5)
 train_encoding = encodingModel.getEncoding(np.array(X_train))
 test_encoding = encodingModel.getEncoding(np.array(X_test))
 
-np.save(dataPath+'Emobank_deepmoji_transfer_encoding_dominance_train.csv', train_encoding)
-np.save(dataPath+'Emobank_deepmoji_transfer_encoding_dominance_test.csv', test_encoding)
+np.save(dataPath+'Emobank_deepmoji_transfer_encoding_arousal_train.csv', train_encoding)
+np.save(dataPath+'Emobank_deepmoji_transfer_encoding_arousal_test.csv', test_encoding)
 
 
-y_truth = np.load(dataPath+'Emobank_deepmoji_transfer_encoding_dominance_test.csv.npy').tolist()
+y_truth = np.load(dataPath+'Emobank_deepmoji_transfer_encoding_arousal_test.csv.npy').tolist()
 y_truth = [x[0] for x in y_truth]
 y_test = [x[0] for x in y_test]
 

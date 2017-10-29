@@ -89,7 +89,7 @@ def class_avg_finetune(model, texts, labels, nb_classes, batch_size,
     (X_val, y_val) = (texts[1], labels[1])
     (X_test, y_test) = (texts[2], labels[2])
 
-    dataPath='../data'
+    dataPath='../data_aro'
 
     if checkpoint_path is None:
         checkpoint_path = '{}/deepmoji-checkpoint-{}.hdf5' \
