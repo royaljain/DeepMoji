@@ -1,9 +1,6 @@
-import sys
-sys.path.insert(0,'/Users/royal/Desktop/MyDeepMoji/DeepMoji/')
-
 import os
 
-os.environ['KERAS_BACKEND']='theano'
+#os.environ['KERAS_BACKEND']='theano'
 
 from deepmoji.model_def import deepmoji_feature_encoding
 from keras.layers.merge import Concatenate
@@ -85,6 +82,28 @@ MAX_SENTS = 5
 
 sentEncoder = deepmoji_feature_encoding(MAX_SENT_LENGTH, weight_path=PRETRAINED_PATH)
 
+def change_trainable(layer, trainable, verbose=False):
+    layer.trainable = trainable
+    if type(layer) == Bidirectional:
+        layer.backward_layer.trainable = trainable
+        layer.forward_layer.trainable = trainable
+    if type(layer) == TimeDistributed:
+        layer.backward_layer.trainable = trainable
+    if verbose:
+        action = 'Unfroze' if trainable else 'Froze'
+        print("{} {}".format(action, layer.name))
+
+
+def freeze(model):
+    for l in model.layers:
+        if len(l.trainable_weights):
+            trainable = False
+            change_trainable(l, trainable, verbose=True)
+
+    return model
+
+
+sentEncoder = freeze(sentEncoder)
 print sentEncoder.summary()
 
 
@@ -113,71 +132,29 @@ print model.summary()
 
 import numpy as np
 
-dataPath = '/Users/royal/Desktop/WikiAbuseDataset/PersonalAttack/'
-train_x = np.load(dataPath+'train_x_personal_attack.npy')
+dataPath = '/home/royal/data/PersonalAttack/'
 train_y = np.load(dataPath+'train_y_personal_attack.npy')
-dev_x = np.load(dataPath+'dev_x_personal_attack.npy')
 dev_y = np.load(dataPath+'dev_y_personal_attack.npy')
-test_x = np.load(dataPath+'test_x_personal_attack.npy')
 test_y = np.load(dataPath+'test_y_personal_attack.npy')
 
 
-# In[9]:
-
-from deepmoji.sentence_tokenizer import SentenceTokenizer
-import json
-
-vocabulary = {}
-with open(VOCAB_PATH, 'r') as f:
-    vocabulary = json.load(f)
-
-st = SentenceTokenizer(vocabulary,MAX_SENT_LENGTH)
+train_new_y  = np.vectorize(lambda x: 1 if x else 0)(train_y)
+dev_new_y  = np.vectorize(lambda x: 1 if x else 0)(dev_y)
+test_new_y  = np.vectorize(lambda x: 1 if x else 0)(test_y)
 
 
 
-def vectorize(doc):
-    sentences = doc.split('NEWLINE_TOKEN')
-    sentences = filter(lambda x: x.strip() != '', sentences)
-    texts_unicode = [s.decode('utf-8') for s in sentences]
-    tokenized, _, _ = st.tokenize_sentences(texts_unicode)
-    return tokenized[:MAX_SENTS]
-    
-
-def helperfunc(lis):
-    mat_lis = np.zeros((len(lis), MAX_SENTS, MAX_SENT_LENGTH))
-   
-    for i in range(0,len(lis)):
-        doc = lis[i]
-        for j in range(0,len(doc)):
-            sents = doc[j]
-            for k in range(0, len(sents)):
-                mat_lis[i][j][k] = lis[i][j][k]
-
-    return mat_lis
-
-
-    
-train_new_x = np.array([vectorize(doc) for doc in train_x.tolist()[:2]])
-dev_new_x = np.array([vectorize(doc) for doc in dev_x.tolist()[:2]])
-test_new_x = np.array([vectorize(doc) for doc in test_x.tolist()[:2]])
-
-train_new_y  = np.vectorize(lambda x: 1 if x else 0)(train_y)[:2]
-dev_new_y  = np.vectorize(lambda x: 1 if x else 0)(dev_y)[:2]
-test_new_y  = np.vectorize(lambda x: 1 if x else 0)(test_y)[:2]
+train_x = np.load(dataPath+'train_x_features.npy')
+dev_x = np.load(dataPath+'dev_x_features.npy')
+test_x = np.load(dataPath+'test_x_features.npy')
 
 
 
-train_x = helperfunc(train_new_x)
-dev_x = helperfunc(dev_new_x)
-test_x = helperfunc(test_new_x)
-
-
-
-callbacks = [EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=1, mode='auto'),
+callbacks = [EarlyStopping(monitor='val_loss', min_delta=0, patience=3, verbose=1, mode='auto'),
              ModelCheckpoint(dataPath+'/weights.hdf5', monitor='val_loss', verbose=1)]
 
 model.fit(train_x, train_new_y, validation_data=(dev_x, dev_new_y),
-          epochs=1, batch_size=1, verbose=2, callbacks = callbacks)
+          epochs=1, batch_size=250, verbose=1, callbacks = callbacks)
 
 
 y_pred =  model.predict(test_x)
